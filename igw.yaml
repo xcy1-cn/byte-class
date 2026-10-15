@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Simple igw practice
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+
+Resources:
+  IGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: 
+          Fn::Sub: "${EnvironmentName}-igw-1"
+      - Key: Stack
+        Value: 
+          Fn::Sub: "${EnvironmentName}-igw-1"    

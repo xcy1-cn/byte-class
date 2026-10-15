@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Simple S3 bucket practice
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+
+  Vpc1Cidr:
+    Type: String
+    Default: 10.0.0.0/16
+
+  Vpc2Cidr:
+    Type: String
+    Default: 12.0.0.0/16  
+
+Resources:
+  MyVPC1:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 
+        Ref: Vpc1Cidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: 
+           Fn::Sub: "${EnvironmentName}-vpc-1"
+        - Key: Mk
+          Value: 
+           Fn::Sub: "${EnvironmentName}-vpc-1"
+
+  MyVPC2:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref Vpc2Cidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: 
+           Fn::Sub: "${EnvironmentName}-vpc-2"
+        - Key: Mk
+          Value: 
+           Fn::Sub: "${EnvironmentName}-vpc-2"      

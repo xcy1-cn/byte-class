@@ -1,0 +1,39 @@
+#  追加一个属于 cfn 创建的 vpc 里的 subnet
+# （利用 ref 函数）
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: This yaml file is used to create a subnet in vpc named cfn
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: cfn
+
+  Vpc1Cidr:
+    Type: String
+    Default: 15.0.0.0/16  
+
+Resources:
+  Cfn:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Ref: Vpc1Cidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: "${EnvironmentName}-vpc-1"
+
+  CfnSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Cfn
+      CidrBlock: 15.0.1.0/24
+      AvailabilityZone: "ap-northeast-1a"
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: "${EnvironmentName}-subnet-1"
