@@ -1,45 +1,57 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Simple S3 bucket practice
+Description: Create one VPC with dev and pro subnets
 
 Parameters:
-  EnvironmentName:
+  ProjectName:
     Type: String
-    Default: dev
+    Default: cfn
+    AllowedValues:
+      - cfn
+      - practice
 
-  Vpc1Cidr:
-    Type: String
-    Default: 10.0.0.0/16
+Mappings:
+  SubnetConfig:
+    dev:
+      Cidr: 10.0.1.0/24
 
-  Vpc2Cidr:
-    Type: String
-    Default: 12.0.0.0/16  
+    pro:
+      Cidr: 10.0.2.0/24
 
 Resources:
-  MyVPC1:
+  CfnVPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: 
-        Ref: Vpc1Cidr
+      CidrBlock: 10.0.0.0/16
       EnableDnsSupport: true
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: 
-           Fn::Sub: "${EnvironmentName}-vpc-1"
-        - Key: Mk
-          Value: 
-           Fn::Sub: "${EnvironmentName}-vpc-1"
+          Value: !Sub "${ProjectName}-vpc"
 
-  MyVPC2:
-    Type: AWS::EC2::VPC
+  DevSubnet:
+    Type: AWS::EC2::Subnet
     Properties:
-      CidrBlock: !Ref Vpc2Cidr
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
+      VpcId: !Ref CfnVPC
+      CidrBlock: !FindInMap
+        - SubnetConfig
+        - dev
+        - Cidr
+      AvailabilityZone: ap-northeast-1a
+      MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: 
-           Fn::Sub: "${EnvironmentName}-vpc-2"
-        - Key: Mk
-          Value: 
-           Fn::Sub: "${EnvironmentName}-vpc-2"      
+          Value: !Sub "${ProjectName}-dev-subnet"
+
+  ProSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref CfnVPC
+      CidrBlock: !FindInMap
+        - SubnetConfig
+        - pro
+        - Cidr
+      AvailabilityZone: ap-northeast-1c
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-pro-subnet"
