@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: test aws accountId
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: CFN
+
+Mappings:
+  AccountConfig:
+    "222222":
+      ver: dev
+      VpcCidr: "10.0.0.0/16"
+      SubnetCidr1: "10.0.1.0/24"
+      SubnetCidr2: "10.0.2.0/24"
+      AvailabilityZone: ap-northeast-1a
+
+    "521831014985":
+      ver: pro
+      VpcCidr: "10.1.0.0/16"
+      SubnetCidr1: "10.1.1.0/24"
+      SubnetCidr2: "10.1.2.0/24"
+      AvailabilityZone: ap-northeast-1c   
+
+
+Resources:
+  CfnVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !FindInMap [AccountConfig, !Ref "AWS::AccountId", VpcCidr]
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: "CFN"
+
+
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref CfnVPC
+      CidrBlock: !FindInMap [AccountConfig, !Ref "AWS::AccountId", SubnetCidr1]
+      AvailabilityZone: !FindInMap [AccountConfig, !Ref "AWS::AccountId", AvailabilityZone]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Sub:
+              - "${ProjectName}-${ver}-public"
+              - ver: !FindInMap
+                  - AccountConfig
+                  - !Ref "AWS::AccountId"
+                  - ver
+
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref CfnVPC
+      CidrBlock: !FindInMap [AccountConfig, !Ref "AWS::AccountId", SubnetCidr2]
+      AvailabilityZone: !FindInMap [AccountConfig, !Ref "AWS::AccountId", AvailabilityZone]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Sub:
+              - "${ProjectName}-${ver}-private"
+              - ver: !FindInMap
+                  - AccountConfig
+                  - !Ref "AWS::AccountId"
+                  - ver  
+
+  CfnIGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-IGW"
+
+  CfnVPCGateAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref CfnIGW
+      VpcId: !Ref CfnVPC
+
+# public subnet
+  CfnPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags: 
+        - Key: Name
+          Value: !Sub "${ProjectName}-RT-pub"
+      VpcId: !Ref CfnVPC
+
+  CfnRoute:  
+    DependsOn: CfnVPCGateAttach
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref CfnIGW
+      RouteTableId: !Ref CfnPublicRouteTable
+
+  CfnRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet1
+      RouteTableId: !Ref CfnPublicRouteTable   
+
+# private subnet
+  CfnPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref CfnVPC
+      Tags: 
+        - Key: Name
+          Value: !Sub "${ProjectName}-RT-prt"         
+  
+  CfnPrivateRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet2
+      RouteTableId: !Ref CfnPrivateRouteTable
+    
+Outputs:
+  VpcId:
+    Value: !Ref CfnVPC
+    Export:
+      Name: !Sub "${AWS::StackName}-VpcId"
+  PublicSubnetId:
+    Value: !Ref Subnet1
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicSubnetId"
+  PrivateSubnetId:
+    Value: !Ref Subnet2
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnetId"          
+  
+  

@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: test aws accountId
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: cfn
+    AllowedValues:
+      - cfn
+      - practice
+
+Mappings:
+  AccountConfig:
+    "222222":
+      ver: dev
+      VpcCidr: "10.0.0.0/16"
+      SubnetCidr1: "10.0.1.0/24"
+      SubnetCidr2: "10.0.2.0/24"
+      AvailabilityZone: ap-northeast-1a
+
+    "521831014985":
+      ver: pro
+      VpcCidr: "10.1.0.0/16"
+      SubnetCidr1: "10.1.1.0/24"
+      SubnetCidr2: "10.1.2.0/24"
+      AvailabilityZone: ap-northeast-1c
+
+Conditions:
+  IsAccountId:
+    Fn::Equals: [!Ref "AWS::AccountId", "1111111115"]
+  IsNotAccountId:
+    Fn::Not: 
+      - Condition: IsAccountId     
+
+
+Resources:
+  CfnVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !FindInMap [AccountConfig, !Ref "AWS::AccountId", VpcCidr]
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: ProjectName
+          Value: !If [IsAccountId, "pro", "dev"]
+
+
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Condition: IsAccountId
+    Properties:
+      VpcId: !Ref CfnVPC
+      CidrBlock: !FindInMap [AccountConfig, !Ref "AWS::AccountId", SubnetCidr1]
+      AvailabilityZone: !FindInMap [AccountConfig, !Ref "AWS::AccountId", AvailabilityZone]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Sub:
+              - "${ProjectName}-${ver}-subnet1"
+              - ver: !FindInMap
+                  - AccountConfig
+                  - !Ref "AWS::AccountId"
+                  - ver
+
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Condition: IsNotAccountId   
+    Properties:
+      VpcId: !Ref CfnVPC
+      CidrBlock: !FindInMap [AccountConfig, !Ref "AWS::AccountId", SubnetCidr2]
+      AvailabilityZone: !FindInMap [AccountConfig, !Ref "AWS::AccountId", AvailabilityZone]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: 
+            Fn::Sub:
+              - "${ProjectName}-${ver}-subnet2"
+              - ver: !FindInMap
+                  - AccountConfig
+                  - !Ref "AWS::AccountId"
+                  - ver                      
+
+  
+  
